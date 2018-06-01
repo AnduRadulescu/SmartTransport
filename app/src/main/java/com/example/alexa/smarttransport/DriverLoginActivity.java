@@ -22,7 +22,6 @@ import java.sql.Driver;
 public class DriverLoginActivity extends AppCompatActivity {
     private EditText mEmail, mPassword;
     private Button mLogin, mRegistration;
-
     private FirebaseAuth mAuth;
     private FirebaseAuth.AuthStateListener firebaseAuthListenre;
 

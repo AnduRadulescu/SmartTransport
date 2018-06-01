@@ -1,18 +1,23 @@
 package com.example.alexa.smarttransport;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationListener;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
+import com.firebase.geofire.GeoFire;
+import com.firebase.geofire.GeoLocation;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -21,14 +26,27 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
+import java.util.List;
+import java.util.Map;
 
 public class DriverMapActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
 
     private GoogleMap mMap;
-    GoogleApiClient mGoogleApiClient;
-    Location mLastLocation;
-    LocationRequest mLocationRequest;
-    SupportMapFragment mapFragment;
+    private Button mLogout;
+    private GoogleApiClient mGoogleApiClient;
+    private Location mLastLocation;
+    private LocationRequest mLocationRequest;
+    private SupportMapFragment mapFragment;
+    private boolean logut = false ;
+    private String customerId = "";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,8 +60,69 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         }else{
             mapFragment.getMapAsync(this);
         }
-    }
+        mLogout = findViewById(R.id.logout);
+        mLogout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DatabaseReference ref = FirebaseDatabase.getInstance().getReference("driversAvailable");
+                GeoFire geoFire = new GeoFire(ref);
+                geoFire.removeLocation(FirebaseAuth.getInstance().getCurrentUser().getUid());
 
+                logut = true;
+
+                FirebaseAuth.getInstance().signOut();
+
+                Intent intent = new Intent(DriverMapActivity.this,MainActivity.class);
+                startActivity(intent);
+                finish();
+                //return;
+            }
+        });
+        getAssignedCustomer();
+    }
+    private void getAssignedCustomer(){
+        String driverId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        DatabaseReference assignedCustomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverId).child("customerRideId");
+        assignedCustomerRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                        customerId = dataSnapshot.getValue().toString();
+                        getAssignedCustomerPickUpLocation();
+                    }
+                }
+                @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                //not needed
+            }
+        });
+    }
+    private void getAssignedCustomerPickUpLocation(){
+        DatabaseReference assignedCustomerPickupLocationRef = FirebaseDatabase.getInstance().getReference().child("customerRequest").child(customerId).child("l");
+        assignedCustomerPickupLocationRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                    List<Object> map = (List<Object>)dataSnapshot.getValue();
+                    double locationLat = 0;
+                    double locationLng = 0;
+                    if(map.get(0) != null) {
+                        locationLat = Double.parseDouble(map.get(0).toString());
+                    }
+                    if(map.get(1) != null){
+                        locationLng = Double.parseDouble(map.get(1).toString());
+                    }
+                    //add marker to map pointing where the driver is
+                    LatLng driverLatLng = new LatLng(locationLat,locationLng);
+                    mMap .addMarker(new MarkerOptions().position(driverLatLng).title("pickup location"));
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                //not needed
+            }
+        });
+    }
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -65,11 +144,32 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
 
     @Override
     public void onLocationChanged(Location location) {
-        mLastLocation = location;
+        if(logut == false) {
 
-        LatLng latLng = new LatLng(location.getLatitude(),location.getLongitude());
-        mMap.moveCamera (CameraUpdateFactory.newLatLng(latLng));
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
+            mLastLocation = location;
+
+            LatLng latLng = new LatLng(location.getLatitude(),location.getLongitude());
+
+            mMap.moveCamera (CameraUpdateFactory.newLatLng(latLng));
+            mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
+            String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+            DatabaseReference refAvalable = FirebaseDatabase.getInstance().getReference("driversAvailable");
+            DatabaseReference refWorking = FirebaseDatabase.getInstance().getReference("driversWorking");
+
+            GeoFire geoFireAvailable = new GeoFire(refAvalable);
+            GeoFire geoFireWorking = new GeoFire(refWorking);
+            switch (customerId){
+                case "":
+                    geoFireWorking.removeLocation(userId);
+                    geoFireAvailable.setLocation(userId, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                    break;
+                default:
+                    geoFireAvailable.removeLocation(userId);
+                    geoFireWorking.setLocation(userId, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                    break;
+            }
+        }
     }
 
     @Override
@@ -84,11 +184,6 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             ActivityCompat.requestPermissions(DriverMapActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
         }
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
     }
     final int LOCATION_REQUEST_CODE = 1;
     @Override
@@ -105,9 +200,25 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             }
         }
     }
-
+    @Override
+    public void onConnectionSuspended(int i) {
+    }
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+    }
+    //we need to know when a driver is no longer available
+    @Override
+    protected void onStop() {
+        super.onStop();
+//            Intent intent = new Intent (DriverMapActivity.this, MainActivity.class);
+//            startActivity(intent);
+//            finish();
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
 
     }
 }
