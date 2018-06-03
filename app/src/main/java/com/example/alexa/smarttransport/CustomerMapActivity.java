@@ -26,6 +26,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -43,14 +44,15 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
 
 
     private GoogleMap mMap;
-    private Button mLogout,mRequest;
+    private Button mLogout, mRequest;
     private LatLng pickUpLocation;
     GoogleApiClient mGoogleApiClient;
-    Location mLastLocation;
+    private Location mLastLocation;
     LocationRequest mLocationRequest;
     SupportMapFragment mapFragment;
     DatabaseReference ref;
-
+    private Boolean requestBol = false;
+    private Marker pickUpMarker;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,9 +61,9 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(CustomerMapActivity.this,new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
-        }else{
-            mapFragment.getMapAsync( this);
+            ActivityCompat.requestPermissions(CustomerMapActivity.this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQUEST_CODE);
+        } else {
+            mapFragment.getMapAsync(this);
         }
         mLogout = findViewById(R.id.logout);
         mRequest = findViewById(R.id.request);
@@ -69,7 +71,7 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
             @Override
             public void onClick(View v) {
                 FirebaseAuth.getInstance().signOut();
-                Intent intent = new Intent(CustomerMapActivity.this,MainActivity.class);
+                Intent intent = new Intent(CustomerMapActivity.this, MainActivity.class);
                 startActivity(intent);
                 finish();
                 return;
@@ -78,18 +80,42 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
         mRequest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                if (requestBol) {
+                    requestBol = false;
+                    geoQuery.removeAllListeners();
+                    driverLocationRef.removeEventListener(driverLocationRefListener);
 
-                ref = FirebaseDatabase.getInstance().getReference("customerRequest");
-                GeoFire geoFire = new GeoFire(ref);
-                geoFire.setLocation(userId, new GeoLocation(mLastLocation.getLatitude(),mLastLocation.getLatitude()));
+                    if(driverFoundId != null){
+                        DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundId);
+                        driverRef.setValue(true);
+                        driverFoundId = null;
+                    }
+                    driverFound = false;
+                    radius = 1;
+                    String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    ref = FirebaseDatabase.getInstance().getReference("customerRequest");
+                    GeoFire geoFire = new GeoFire(ref);
+                    geoFire.removeLocation(userId);
 
-                pickUpLocation = new LatLng(mLastLocation.getLatitude(),mLastLocation.getLongitude());
-                mMap.addMarker(new MarkerOptions().position(pickUpLocation).title("PickUp Here"));
+                    if(pickUpMarker != null){
+                        pickUpMarker.remove();
+                    }
+                    mRequest.setText("Call Driver");
+                } else {
+                    requestBol = true;
+                    String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-                mRequest.setText("Getting your driver");
+                    ref = FirebaseDatabase.getInstance().getReference("customerRequest");
+                    GeoFire geoFire = new GeoFire(ref);
+                    geoFire.setLocation(userId, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
 
-                getClosestDriver();
+                    pickUpLocation = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+                    pickUpMarker = mMap.addMarker(new MarkerOptions().position(pickUpLocation).title("PickUp Here").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_location1)));
+
+                    mRequest.setText("Getting your driver");
+
+                    getClosestDriver();
+                }
             }
         });
     }
@@ -98,25 +124,28 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
     private int radius = 1;
     private Boolean driverFound = false;
     private String driverFoundId;
-    private void getClosestDriver(){
+
+    GeoQuery geoQuery;
+    private void getClosestDriver() {
         //getLocation
-        DatabaseReference driverLocation = FirebaseDatabase .getInstance().getReference().child("driversAvailable");
+        DatabaseReference driverLocation = FirebaseDatabase.getInstance().getReference().child("driversAvailable");
 
         GeoFire geoFire = new GeoFire(driverLocation);
         //create query
-        GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(pickUpLocation.latitude,pickUpLocation.longitude),radius);
+        geoQuery = geoFire.queryAtLocation(new GeoLocation(pickUpLocation.latitude, pickUpLocation.longitude), radius);
         geoQuery.removeAllListeners();
+
         geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
             @Override
             public void onKeyEntered(String key, GeoLocation location) {
-                if(!driverFound) {
+                if (!driverFound && requestBol) {
                     driverFound = true;
                     driverFoundId = key;
                     // tell the driver who the customer is
                     DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundId);
                     String customerId = FirebaseAuth.getInstance().getCurrentUser().getUid();
                     HashMap map = new HashMap();
-                    map.put("customerRideId",customerId);
+                    map.put("customerRideId", customerId);
                     driverRef.updateChildren(map);
 
                     getDriverLocation();
@@ -131,7 +160,7 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
             }
             @Override
             public void onGeoQueryReady() {
-                if(!driverFound){
+                if (!driverFound) {
                     radius++;
                     getClosestDriver();
                 }
@@ -144,26 +173,28 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
 
     // get the driver location to tell the customer where his driver is
     private Marker mDriverMarker;
+    private DatabaseReference driverLocationRef;
+    private ValueEventListener driverLocationRefListener;
 
-    private void getDriverLocation(){
-        DatabaseReference driverLocationRef = FirebaseDatabase.getInstance().getReference().child("driversWorking").child(driverFoundId).child("l");
-        driverLocationRef.addValueEventListener(new ValueEventListener() {
+    private void getDriverLocation() {
+        driverLocationRef = FirebaseDatabase.getInstance().getReference().child("driversWorking").child(driverFoundId).child("l");
+        driverLocationRefListener = driverLocationRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists()){
+                if (dataSnapshot.exists()) {
                     List<Object> map = (List<Object>) dataSnapshot.getValue();
                     double locationLat = 0;
                     double locationLng = 0;
                     mRequest.setText("Driver Found");
-                    if(map.get(0) != null) {
+                    if (map.get(0) != null) { //make sure map data exist
                         locationLat = Double.parseDouble(map.get(0).toString());
                     }
-                    if(map.get(1) != null){
+                    if (map.get(1) != null) { //make sure map data exist
                         locationLng = Double.parseDouble(map.get(1).toString());
                     }
                     //add marker to map pointing where the driver is
-                    LatLng driverLatLng = new LatLng(locationLat,locationLng);
-                    if(mDriverMarker != null){
+                    LatLng driverLatLng = new LatLng(locationLat, locationLng);
+                    if (mDriverMarker != null) {
                         mDriverMarker.remove();
                     }
                     Location loca1 = new Location("");
@@ -176,33 +207,33 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
 
                     float distance = loca1.distanceTo(loca2);
 
-                    if(distance <100)
-                    {
+                    if (distance < 100) {
                         mRequest.setText("Driver has Arrived");
-                    }else{
+                    } else {
                         mRequest.setText("Driver Found:" + String.valueOf(distance));
                     }
-
-                    mDriverMarker = mMap .addMarker(new MarkerOptions().position(driverLatLng).title("Your driver"));
+                    mDriverMarker = mMap.addMarker(new MarkerOptions().position(driverLatLng).title("Your driver").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_car)));
                 }
             }
+
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
 
             }
         });
     }
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(CustomerMapActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
+            ActivityCompat.requestPermissions(CustomerMapActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQUEST_CODE);
         }
         buildGoogleApiClient();
         mMap.setMyLocationEnabled(true);
     }
-    protected synchronized void buildGoogleApiClient(){
+    protected synchronized void buildGoogleApiClient() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
@@ -210,16 +241,14 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
                 .build();
         mGoogleApiClient.connect();
     }
-
     @Override
     public void onLocationChanged(Location location) {
         mLastLocation = location;
 
-        LatLng latLng = new LatLng(location.getLatitude(),location.getLongitude());
-        mMap.moveCamera (CameraUpdateFactory.newLatLng(latLng));
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
     }
-
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         //creating request every second
@@ -229,7 +258,7 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(CustomerMapActivity.this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},LOCATION_REQUEST_CODE);
+            ActivityCompat.requestPermissions(CustomerMapActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQUEST_CODE);
         }
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
     }
@@ -242,12 +271,12 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch(requestCode){
-            case LOCATION_REQUEST_CODE:{
-                if(grantResults.length > 0 && grantResults[0]==PackageManager.PERMISSION_GRANTED){
+        switch (requestCode) {
+            case LOCATION_REQUEST_CODE: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     mapFragment.getMapAsync(this);
-                }else{
-                    Toast.makeText(getApplicationContext(),"Please provide the permission",Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(getApplicationContext(), "Please provide the permission", Toast.LENGTH_LONG).show();
                 }
                 break;
             }
@@ -256,9 +285,11 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
     }
+
     @Override
     public void onPointerCaptureChanged(boolean hasCapture) {
     }
+
     @Override
     protected void onStop() {
         super.onStop();

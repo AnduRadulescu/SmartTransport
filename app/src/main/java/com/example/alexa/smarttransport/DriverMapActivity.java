@@ -24,7 +24,9 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -46,7 +48,11 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     private SupportMapFragment mapFragment;
     private boolean logut = false ;
     private String customerId = "";
-
+    private DatabaseReference assignedCustomerPickupLocationRef;
+    private ValueEventListener assignedCustomerPickupLocationRefListener;
+    private LatLng driverLatLng;
+    private DatabaseReference ref;
+    private Marker pickUpMarker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +70,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         mLogout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                DatabaseReference ref = FirebaseDatabase.getInstance().getReference("driversAvailable");
+                ref = FirebaseDatabase.getInstance().getReference("driversAvailable");
                 GeoFire geoFire = new GeoFire(ref);
                 geoFire.removeLocation(FirebaseAuth.getInstance().getCurrentUser().getUid());
 
@@ -79,6 +85,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             }
         });
         getAssignedCustomer();
+
     }
     private void getAssignedCustomer(){
         String driverId = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -89,32 +96,41 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                 if(dataSnapshot.exists()){
                         customerId = dataSnapshot.getValue().toString();
                         getAssignedCustomerPickUpLocation();
+                }else{
+                    customerId = "";
+                    if(pickUpMarker != null){
+                        pickUpMarker.remove();
+                    }
+                    if(assignedCustomerPickupLocationRef != null){
+                        assignedCustomerPickupLocationRef.removeEventListener(assignedCustomerPickupLocationRefListener);
                     }
                 }
+            }
                 @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 //not needed
             }
         });
     }
+    //get the location from the driver and set a marker on that location
     private void getAssignedCustomerPickUpLocation(){
-        DatabaseReference assignedCustomerPickupLocationRef = FirebaseDatabase.getInstance().getReference().child("customerRequest").child(customerId).child("l");
-        assignedCustomerPickupLocationRef.addValueEventListener(new ValueEventListener() {
+        assignedCustomerPickupLocationRef = FirebaseDatabase.getInstance().getReference().child("customerRequest").child(customerId).child("l");
+        assignedCustomerPickupLocationRefListener = assignedCustomerPickupLocationRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists()){
+                if(dataSnapshot.exists() && !customerId.equals("")){
                     List<Object> map = (List<Object>)dataSnapshot.getValue();
                     double locationLat = 0;
                     double locationLng = 0;
-                    if(map.get(0) != null) {
+                    if (map.get(0) != null) { //make sure map data exist
                         locationLat = Double.parseDouble(map.get(0).toString());
                     }
-                    if(map.get(1) != null){
+                    if (map.get(1) != null) { //make sure map data exist
                         locationLng = Double.parseDouble(map.get(1).toString());
                     }
                     //add marker to map pointing where the driver is
-                    LatLng driverLatLng = new LatLng(locationLat,locationLng);
-                    mMap .addMarker(new MarkerOptions().position(driverLatLng).title("pickup location"));
+                    driverLatLng = new LatLng(locationLat,locationLng);
+                    pickUpMarker = mMap.addMarker(new MarkerOptions().position(driverLatLng).title("pickup location").icon(BitmapDescriptorFactory.fromResource(R.mipmap.ic_location1)));
                 }
             }
             @Override
@@ -152,22 +168,20 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
 
             mMap.moveCamera (CameraUpdateFactory.newLatLng(latLng));
             mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
+
             String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-            DatabaseReference refAvalable = FirebaseDatabase.getInstance().getReference("driversAvailable");
+            DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference("driversAvailable");
             DatabaseReference refWorking = FirebaseDatabase.getInstance().getReference("driversWorking");
 
-            GeoFire geoFireAvailable = new GeoFire(refAvalable);
+            GeoFire geoFireAvailable = new GeoFire(refAvailable);
             GeoFire geoFireWorking = new GeoFire(refWorking);
-            switch (customerId){
-                case "":
-                    geoFireWorking.removeLocation(userId);
-                    geoFireAvailable.setLocation(userId, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                    break;
-                default:
-                    geoFireAvailable.removeLocation(userId);
-                    geoFireWorking.setLocation(userId, new GeoLocation(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                    break;
+             if(customerId == "") {
+                 geoFireWorking.removeLocation(userId);
+                 geoFireAvailable.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
+             }else{
+                 geoFireAvailable.removeLocation(userId);
+                 geoFireWorking.setLocation(userId, new GeoLocation(location.getLatitude(), location.getLongitude()));
             }
         }
     }
