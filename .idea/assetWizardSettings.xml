@@ -45,8 +45,8 @@
                                   </option>
                                   <option name="values">
                                     <map>
-                                      <entry key="foregroundImage" value="D:\location.png" />
-                                      <entry key="foregroundLayerName" value="ic_location1" />
+                                      <entry key="foregroundImage" value="D:\user.png" />
+                                      <entry key="foregroundLayerName" value="ic_default_user" />
                                       <entry key="legacyIconShape" value="NONE" />
                                     </map>
                                   </option>

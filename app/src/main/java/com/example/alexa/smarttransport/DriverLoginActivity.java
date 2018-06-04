@@ -47,6 +47,7 @@ public class DriverLoginActivity extends AppCompatActivity {
 
         mEmail = findViewById(R.id.email);
         mPassword = findViewById(R.id.password);
+
         mLogin = findViewById(R.id.login);
         mRegistration = findViewById(R.id.registration);
         //registration
@@ -80,6 +81,10 @@ public class DriverLoginActivity extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (!task.isSuccessful()) {
                             Toast.makeText(DriverLoginActivity.this, "sign in error", Toast.LENGTH_LONG).show();
+                        }else{
+                            String user_id = mAuth.getCurrentUser().getUid();
+                            DatabaseReference current_user_db = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(user_id);
+                            current_user_db.setValue(true);
                         }
                     }
                 });
