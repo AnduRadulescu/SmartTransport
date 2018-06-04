@@ -44,7 +44,7 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
 
 
     private GoogleMap mMap;
-    private Button mLogout, mRequest;
+    private Button mLogout, mRequest,mSettings;
     private LatLng pickUpLocation;
     GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
@@ -67,6 +67,7 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
         }
         mLogout = findViewById(R.id.logout);
         mRequest = findViewById(R.id.request);
+        mSettings = findViewById(R.id.settings);
         mLogout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -116,6 +117,14 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
 
                     getClosestDriver();
                 }
+            }
+        });
+        mSettings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(CustomerMapActivity.this, CustomerSettingsActivity.class);
+                startActivity(intent);
+                return;
             }
         });
     }
