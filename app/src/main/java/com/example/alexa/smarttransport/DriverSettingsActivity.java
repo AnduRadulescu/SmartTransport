@@ -16,7 +16,6 @@ import android.widget.ImageView;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -32,25 +31,29 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CustomerSettingsActivity extends AppCompatActivity {
+public class DriverSettingsActivity extends AppCompatActivity {
 
-    private EditText mNameField, mPhoneField;
-    private Button mBack, mConfirm;
-    private DatabaseReference mCustomerDatabase;
-    private ImageView mProfileImage;
+    private Button mBack,mConfirm;
+    private EditText mNameField,mPhoneField,mCarField;
+    private  ImageView mProfileImage;
     private String userId;
+    private DatabaseReference mDriverDatabase;
     private String mName;
     private String mPhone;
-    private Uri resultUri;
+    private String mCar;
     private String mProfileImageUrl;
+    private Uri resultUri;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_customer_settings);
+        setContentView(R.layout.activity_driver_settings);
 
         mNameField = findViewById(R.id.name);
         mPhoneField = findViewById(R.id.phone);
+        mCarField = findViewById(R.id.car);
 
         mProfileImage = findViewById(R.id.profileImage);
 
@@ -58,7 +61,7 @@ public class CustomerSettingsActivity extends AppCompatActivity {
         mConfirm = findViewById(R.id.confirm);
 
         userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        mCustomerDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Customers").child(userId);
+        mDriverDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(userId);
 
         getUserInfo();
 
@@ -86,9 +89,8 @@ public class CustomerSettingsActivity extends AppCompatActivity {
             }
         });
     }
-
     private void getUserInfo() {
-        mCustomerDatabase.addValueEventListener(new ValueEventListener() {
+        mDriverDatabase.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists() && dataSnapshot.getChildrenCount() > 0) {
@@ -100,6 +102,10 @@ public class CustomerSettingsActivity extends AppCompatActivity {
                     if (map.get("phone") != null) {
                         mPhone = map.get("phone").toString();
                         mPhoneField.setText(mPhone);
+                    }
+                    if (map.get("car") != null) {
+                        mCar = map.get("car").toString();
+                        mCarField.setText(mCar);
                     }
                     if (map.get("profileImageUrl") != null) {
                         mProfileImageUrl = map.get("profileImageUrl").toString();
@@ -113,15 +119,16 @@ public class CustomerSettingsActivity extends AppCompatActivity {
             }
         });
     }
-
     private void saveUserInformation() {
         mName = mNameField.getText().toString();
         mPhone = mPhoneField.getText().toString();
+        mCar = mCarField.getText().toString();
 
         Map userInfo = new HashMap();
         userInfo.put("name", mName);
         userInfo.put("phone", mPhone);
-        mCustomerDatabase.updateChildren(userInfo);
+        userInfo.put("car",mCar);
+        mDriverDatabase.updateChildren(userInfo);
         //save image in the storage reference
         if (resultUri != null) {
             final StorageReference filePath = FirebaseStorage.getInstance().getReference().child("profile_Images").child(userId);
@@ -150,14 +157,13 @@ public class CustomerSettingsActivity extends AppCompatActivity {
                 public void onSuccess(Uri uri) {
                     Map newImage = new HashMap();
                     newImage.put("profileImageUrl",filePath.toString());
-                    mCustomerDatabase.updateChildren(newImage);
+                    mDriverDatabase.updateChildren(newImage);
                 }
             });
         } else {
             finish();
         }
     }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
