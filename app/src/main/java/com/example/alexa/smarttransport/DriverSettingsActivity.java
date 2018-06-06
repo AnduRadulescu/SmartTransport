@@ -12,6 +12,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 
 import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -41,8 +43,10 @@ public class DriverSettingsActivity extends AppCompatActivity {
     private String mName;
     private String mPhone;
     private String mCar;
+    private String mService;
     private String mProfileImageUrl;
     private Uri resultUri;
+    private RadioGroup mRadioGroup;
 
 
 
@@ -59,6 +63,8 @@ public class DriverSettingsActivity extends AppCompatActivity {
 
         mBack = findViewById(R.id.back);
         mConfirm = findViewById(R.id.confirm);
+
+        mRadioGroup = findViewById(R.id.radioGroup);
 
         userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         mDriverDatabase = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(userId);
@@ -107,6 +113,10 @@ public class DriverSettingsActivity extends AppCompatActivity {
                         mCar = map.get("car").toString();
                         mCarField.setText(mCar);
                     }
+                    if (map.get("car") != null) {
+                        mCar = map.get("car").toString();
+                        mCarField.setText(mCar);
+                    }
                     if (map.get("profileImageUrl") != null) {
                         mProfileImageUrl = map.get("profileImageUrl").toString();
                         Glide.with(getApplication()).load(mProfileImageUrl).into(mProfileImage);
@@ -124,10 +134,22 @@ public class DriverSettingsActivity extends AppCompatActivity {
         mPhone = mPhoneField.getText().toString();
         mCar = mCarField.getText().toString();
 
+        int selectedId = mRadioGroup.getCheckedRadioButtonId();
+
+        final RadioButton radioButton = findViewById(selectedId);
+
+        if(radioButton.getText() == null){
+            return;
+        }
+
+        mService = radioButton.getText().toString();
+
         Map userInfo = new HashMap();
         userInfo.put("name", mName);
         userInfo.put("phone", mPhone);
         userInfo.put("car",mCar);
+        userInfo.put("service",mService);
+
         mDriverDatabase.updateChildren(userInfo);
         //save image in the storage reference
         if (resultUri != null) {
