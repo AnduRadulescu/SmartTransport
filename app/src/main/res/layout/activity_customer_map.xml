@@ -15,26 +15,37 @@
     <RelativeLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
-
-        <Button
-            android:id="@+id/logout"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom|left"
-            android:text="Logout" />
+            android:id="@+id/buttons">
 
-        <Button
-            android:id="@+id/settings"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:layout_gravity="right"
-            android:text="Settings" />
+            <Button
+                android:id="@+id/logout"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Logout" />
+            <Button
+                android:id="@+id/history"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="History" />
+            <Button
+                android:id="@+id/settings"
+                android:layout_weight="1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Settings" />
+
+        </LinearLayout>
+
 
         <android.support.v7.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@+id/settings"
+            android:layout_below="@+id/buttons"
             android:layout_margin="20sp">
 
             <fragment

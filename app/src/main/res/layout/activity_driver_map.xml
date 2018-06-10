@@ -31,42 +31,54 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="@android:color/white"
-        android:orientation="horizontal"
-        android:visibility="gone">
-
-        <ImageView
-            android:id="@+id/customerProfileImage"
-            android:layout_width="100sp"
-            android:layout_height="100sp"
-            android:padding="20sp"
-            android:src="@mipmap/ic_default_user" />
+        android:orientation="vertical"
+        android:visibility="visible">
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="40sp">
+            android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/customerDestination"
+            <ImageView
+                android:id="@+id/customerProfileImage"
+                android:layout_width="100sp"
+                android:layout_height="100sp"
+                android:padding="20sp"
+                android:src="@mipmap/ic_default_user" />
+
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingTop="20sp"
-                android:text="Destination: --" />
+                android:orientation="vertical"
+                android:padding="40sp">
 
-            <TextView
-                android:id="@+id/customerName"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingBottom="10sp"
-                android:paddingTop="20sp" />
+                <TextView
+                    android:id="@+id/customerDestination"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingTop="20sp"
+                    android:text="Destination: --" />
 
-            <TextView
-            android:id="@+id/customerPhone"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingBottom="10sp"
-            android:paddingTop="20sp" />
+                <TextView
+                    android:id="@+id/customerName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="10sp"
+                    android:paddingTop="20sp" />
+
+                <TextView
+                    android:id="@+id/customerPhone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="10sp"
+                    android:paddingTop="20sp" />
+            </LinearLayout>
         </LinearLayout>
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="picked customer"
+            android:id="@+id/rideStatus"/>
+
     </LinearLayout>
 </FrameLayout>
