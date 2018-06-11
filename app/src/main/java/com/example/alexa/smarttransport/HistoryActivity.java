@@ -86,7 +86,6 @@ public class HistoryActivity extends AppCompatActivity {
             }
         });
     }
-
     private String getDate(Long timeStamp) {
         Calendar cal = Calendar.getInstance(Locale.getDefault());
         cal.setTimeInMillis(timeStamp*1000);
