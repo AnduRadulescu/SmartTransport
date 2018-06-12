@@ -136,19 +136,19 @@ public class DriverSettingsActivity extends AppCompatActivity {
 
         int selectedId = mRadioGroup.getCheckedRadioButtonId();
 
-        final RadioButton radioButton = findViewById(selectedId);
+        // radio buttons for selecting the type of service which you want
+        /*final RadioButton radioButton = findViewById(selectedId);
 
         if(radioButton.getText() == null){
             return;
         }
-
-        mService = radioButton.getText().toString();
+        mService = radioButton.getText().toString();*/
 
         Map userInfo = new HashMap();
         userInfo.put("name", mName);
         userInfo.put("phone", mPhone);
         userInfo.put("car",mCar);
-        userInfo.put("service",mService);
+        //userInfo.put("service",mService);
 
         mDriverDatabase.updateChildren(userInfo);
         //save image in the storage reference

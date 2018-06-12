@@ -5,19 +5,6 @@
     android:layout_height="match_parent"
     tools:context=".DriverMapActivity">
 
-    <Button
-        android:id="@+id/logout"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top"
-        android:text="logout" />
-
-    <Button
-        android:id="@+id/settingsDriver"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end"
-        android:text="Settings" />
 
     <fragment
         android:id="@+id/map"
@@ -26,13 +13,44 @@
         android:layout_height="match_parent" />
 
     <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/logout"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top"
+                android:text="logout" />
+
+            <Button
+                android:id="@+id/settingsDriver"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:text="Settings" />
+        </LinearLayout>
+        <Switch
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Working"
+            android:layout_margin="10sp"
+            android:id="@+id/workingSwitch"/>
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/customerInfo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="@android:color/white"
         android:orientation="vertical"
-        android:visibility="visible">
+        android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -74,11 +92,12 @@
                     android:paddingTop="20sp" />
             </LinearLayout>
         </LinearLayout>
+
         <Button
+            android:id="@+id/rideStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="picked customer"
-            android:id="@+id/rideStatus"/>
+            android:text="picked customer" />
 
     </LinearLayout>
 </FrameLayout>
