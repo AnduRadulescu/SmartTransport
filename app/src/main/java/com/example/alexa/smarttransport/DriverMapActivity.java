@@ -62,7 +62,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     private String destination;
     private LatLng destinationLatLng;
     private GoogleApiClient mGoogleApiClient;
-    private Location mLastLocation;
+    Location mLastLocation;
     private LocationRequest mLocationRequest;
     private SupportMapFragment mapFragment;
     private boolean logut = false;
@@ -81,6 +81,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     private static final int[] COLORS = new int[]{R.color.primary_dark_material_light};
     private Switch mWorkingSwitch;
     private LatLng pickUpLatLng;
+    private float rideDistance;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -236,13 +237,15 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     }
 
     private void getRouteToMarker(LatLng pickUpLatLng) {
-        Routing routing = new Routing.Builder()
-                .travelMode(AbstractRouting.TravelMode.DRIVING)
-                .withListener(this)
-                .alternativeRoutes(true)
-                .waypoints(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()), pickUpLatLng)
-                .build();
-        routing.execute();
+        if(pickUpLatLng != null && mLastLocation != null) {
+            Routing routing = new Routing.Builder()
+                    .travelMode(AbstractRouting.TravelMode.DRIVING)
+                    .withListener(this)
+                    .alternativeRoutes(true)
+                    .waypoints(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()), pickUpLatLng)
+                    .build();
+            routing.execute();
+        }
     }
 
     private void getAssignedCustomerInfo() {
@@ -264,13 +267,11 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                     }
                 }
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
             }
         });
     }
-
     private void getAssignedCustomerDestination() {
         String driverId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DatabaseReference assignedCustomerRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverId).child("customerRequest");
@@ -279,32 +280,29 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
                     Map<String, Object> map = (Map<String, Object>) dataSnapshot.getValue();
-                    if(map.get("destination")!=null){
+                    if (map.get("destination") != null) {
                         destination = map.get("destination").toString();
                         mCustomerDestination.setText("Destination" + destination);
-                    }
-                    else{
+                    } else {
                         mCustomerDestination.setText("Destination--");
                     }
                     Double destinationLat = 0.0;
                     Double destinationLng = 0.0;
-                    if(map.get("destinationLat")!=null){
+                    if (map.get("destinationLat") != null) {
                         destinationLat = Double.valueOf(map.get("destinationLat").toString());
                     }
-                    if(map.get("destinationLng")!=null){
+                    if (map.get("destinationLng") != null) {
                         destinationLng = Double.valueOf(map.get("destinationLng").toString());
-                        destinationLatLng = new LatLng(destinationLat,destinationLng);
+                        destinationLatLng = new LatLng(destinationLat, destinationLng);
                     }
                 }
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
                 //not needed
             }
         });
     }
-
     private void endRide() {
         mRideStatus.setText("picked customer");
         erasePolylines();
@@ -317,6 +315,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         GeoFire geoFire = new GeoFire(ref);
         geoFire.removeLocation(customerId);
         customerId = "";
+        rideDistance = 0;
 
         if (pickUpMarker != null) {
             pickUpMarker.remove();
@@ -349,6 +348,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         map.put("location/from/lng", pickUpLatLng.longitude);
         map.put("location/to/lat", destinationLatLng.latitude);
         map.put("location/to/lng", destinationLatLng.longitude);
+        map.put("distance", rideDistance);
         historyRef.child(requestId).updateChildren(map);
         driverRef.removeValue();
     }
@@ -381,8 +381,10 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
 
     @Override
     public void onLocationChanged(Location location) {
-        if (logut == false) {
-
+        if (getApplicationContext()!= null) {
+            if (!customerId.equals("") && mLastLocation!=null && location !=null) {
+                rideDistance += mLastLocation.distanceTo(location)/1000;
+            }
             mLastLocation = location;
 
             LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
@@ -424,7 +426,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     private void disconnectDriver(){
         LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient,this);
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("driversWorking");
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("driversAvailable");
 
         GeoFire geoFire = new GeoFire(ref);
         geoFire.removeLocation(userId);
