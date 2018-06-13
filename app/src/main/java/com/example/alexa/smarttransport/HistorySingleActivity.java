@@ -207,7 +207,7 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
                         String paymentResponse = jsonObject.getJSONObject("response").getString("state");
 
                         if(paymentResponse.equals("approved")){
-                            Toast.makeText(getApplicationContext(), "Payment unsuccessful", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getApplicationContext(), "Payment Successful", Toast.LENGTH_LONG).show();
                             historyRideInfoDb.child("customerPaid").setValue(true);
                             mPay.setEnabled(false);
                         }
@@ -291,7 +291,7 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
         LatLngBounds bounds = builder.build();
 
         int width = getResources().getDisplayMetrics().widthPixels;
-        int padding = (int) (width*0.1);
+        int padding = (int) (width*0.05);
 
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds,padding);
         mMap.animateCamera(cameraUpdate);
@@ -304,7 +304,7 @@ public class HistorySingleActivity extends AppCompatActivity implements OnMapRea
         }
         polylines = new ArrayList<>();
         //add route(s) to the map.
-        for (int i = 0; i < route.size(); i++) {
+        for (int i = 0; i < 1; i++) {
 
             //In case of more than 5 alternative routes
             int colorIndex = i % COLORS.length;

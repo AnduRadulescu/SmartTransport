@@ -27,6 +27,12 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="top"
                 android:text="logout" />
+            <Button
+                android:id="@+id/history"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top"
+                android:text="History" />
 
             <Button
                 android:id="@+id/settingsDriver"
@@ -38,7 +44,7 @@
         <Switch
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Start Driveing"
+            android:text="Start Driving"
             android:layout_margin="10sp"
             android:id="@+id/workingSwitch"/>
     </LinearLayout>

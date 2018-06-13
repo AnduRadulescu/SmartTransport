@@ -106,6 +106,7 @@ public class CustomerMapActivity extends FragmentActivity implements GoogleApiCl
         mDriverCar = findViewById(R.id.driverCar);
         mHistory = findViewById(R.id.history);
         mRatingBar = findViewById(R.id.ratingBar);
+        mRatingBar = findViewById(R.id.ratingBar);
 
         mHistory.setOnClickListener(new View.OnClickListener() {
             @Override

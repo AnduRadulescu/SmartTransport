@@ -57,7 +57,7 @@ import java.util.Map;
 public class DriverMapActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener, RoutingListener {
 
     private GoogleMap mMap;
-    private Button mLogout, mSettings, mRideStatus;
+    private Button mLogout, mSettings, mRideStatus,mHistory;
     private int status = 0;
     private String destination;
     private LatLng destinationLatLng;
@@ -102,6 +102,8 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         mCustomerPhone = findViewById(R.id.customerPhone);
         mCustomerDestination = findViewById(R.id.customerDestination);
         mWorkingSwitch = findViewById(R.id.workingSwitch);
+        mHistory = findViewById(R.id.history);
+
         mWorkingSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -135,8 +137,8 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                         erasePolylines();
                         if(destinationLatLng.latitude!=0.0 && destinationLatLng.longitude!=0.0){
                             getRouteToMarker(destinationLatLng);
-                            mRideStatus.setText("Drive Completed");
                         }
+                        mRideStatus.setText("Drive Completed");
                         break;
                     //driver it's on his way to destionation with the custoemr in his car
                     case 2:
@@ -146,7 +148,6 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                 }
             }
         });
-
 
         mLogout = findViewById(R.id.logout);
         mLogout.setOnClickListener(new View.OnClickListener() {
@@ -175,6 +176,15 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
                 startActivity(intent);
                 finish();
                 //return;
+            }
+        });
+        mHistory.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(DriverMapActivity.this, HistoryActivity.class);
+                intent.putExtra("CustomerOrDriver", "Drivers");
+                startActivity(intent);
+                return;
             }
         });
         getAssignedCustomer();
@@ -335,8 +345,9 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         DatabaseReference customerRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Customers").child(customerId).child("history");
         DatabaseReference historyRef = FirebaseDatabase.getInstance().getReference().child("history");
         String requestId = historyRef.push().getKey();
-        driverRef.child(requestId).setValue(true);
         customerRef.child(requestId).setValue(true);
+        driverRef.child(requestId).setValue(true);
+
 
         HashMap map = new HashMap();
         map.put("driver",userId);
@@ -350,7 +361,6 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         map.put("location/to/lng", destinationLatLng.longitude);
         map.put("distance", rideDistance);
         historyRef.child(requestId).updateChildren(map);
-        driverRef.removeValue();
     }
 
     private Long getCurrentTimeStamp() {
@@ -383,7 +393,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
     public void onLocationChanged(Location location) {
         if (getApplicationContext()!= null) {
             if (!customerId.equals("") && mLastLocation!=null && location !=null) {
-                rideDistance += mLastLocation.distanceTo(location)/1000;
+                rideDistance += mLastLocation.distanceTo(location);
             }
             mLastLocation = location;
 
@@ -484,7 +494,7 @@ public class DriverMapActivity extends FragmentActivity implements OnMapReadyCal
         }
         polylines = new ArrayList<>();
         //add route(s) to the map.
-        for (int i = 0; i < route.size(); i++) {
+        for (int i = 0; i < 1; i++) {
 
             //In case of more than 5 alternative routes
             int colorIndex = i % COLORS.length;
